@@ -44,6 +44,8 @@
   }
   .icon-btn:hover { background: rgba(255,255,255,0.24); }
   .container { max-width: 840px; margin: 18px auto 0; padding: 0 16px; }
+  
+  /* Sprint Banner */
   .sprint-card {
     background: linear-gradient(135deg, #e0f2fe 0%, #eff6ff 100%);
     border: 1.5px solid #93c5fd; border-radius: var(--radius); padding: 16px;
@@ -68,6 +70,8 @@
     background: #fff; border-radius: 10px; padding: 9px 12px; display: flex;
     justify-content: space-between; align-items: center; border: 1px solid #dbeafe; font-size: 0.88rem;
   }
+
+  /* Filter Strips */
   .filter-section { margin-bottom: 12px; }
   .filter-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
   .chip-row { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
@@ -79,6 +83,8 @@
   .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
   .chip.zone-chip { border-color: #7dd3fc; background: #f0f9ff; color: #0369a1; }
   .chip.zone-chip.active { background: #0284c7; color: #fff; border-color: #0284c7; }
+
+  /* Task List */
   .task-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
   .task-card {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -89,7 +95,9 @@
   .task-main { flex: 1; cursor: pointer; }
   .task-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .task-name { font-weight: 700; font-size: 0.98rem; color: var(--text); }
-  .badge { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .badge {
+    font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  }
   .badge-overdue { background: var(--danger-bg); color: var(--danger); }
   .badge-due { background: var(--warn-bg); color: var(--warn); }
   .badge-fresh { background: var(--ok-bg); color: var(--ok); }
@@ -108,12 +116,16 @@
     padding: 9px 14px; font-size: 0.84rem; font-weight: 700; cursor: pointer; white-space: nowrap;
   }
   .done-btn:hover { background: var(--primary-mid); }
+
+  /* FAB */
   .fab {
     position: fixed; bottom: 22px; right: 22px; background: var(--primary); color: #fff;
     border: none; border-radius: 999px; padding: 14px 22px; font-size: 0.95rem; font-weight: 700;
     box-shadow: 0 8px 24px rgba(30, 66, 107, 0.35); cursor: pointer; z-index: 40;
   }
   .fab:hover { background: var(--primary-mid); }
+
+  /* Modals */
   .modal-backdrop {
     display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55);
     z-index: 50; align-items: center; justify-content: center; padding: 16px;
@@ -153,6 +165,8 @@
   .tag-del { color: var(--danger); cursor: pointer; font-weight: 800; border: none; background: none; }
   .checkbox-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 8px 0; }
   .checkbox-item { font-size: 0.82rem; display: flex; align-items: center; gap: 6px; background: #fff; padding: 6px 8px; border-radius: 8px; border: 1px solid #e2e8f0; }
+
+  /* Toast */
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
     background: #0f172a; color: #fff; padding: 11px 18px; border-radius: 999px;
@@ -172,58 +186,63 @@
       <p>Guilt-free rolling intervals • No weekend marathons</p>
     </div>
     <div class="header-actions">
-      <button class="icon-btn" onclick="openStatsModal()">📊 Stats</button>
-      <button class="icon-btn" onclick="openSettingsModal()">⚙️ Manage</button>
+      <button type="button" class="icon-btn" onclick="openStatsModal()">📊 Stats</button>
+      <button type="button" class="icon-btn" onclick="openSettingsModal()">⚙️ Manage</button>
     </div>
   </div>
 </header>
 
 <div class="container">
+  <!-- Focus Sprint Card -->
   <div class="sprint-card">
     <div class="sprint-head">
       <div class="sprint-title">⚡ Just <span id="sprintMinsLabel">15</span> Minutes Sprint</div>
       <div class="sprint-controls">
-        <button class="pill-btn" onclick="setSprintMins(5)">5m</button>
-        <button class="pill-btn" onclick="setSprintMins(10)">10m</button>
-        <button class="pill-btn active" onclick="setSprintMins(15)">15m</button>
-        <button class="pill-btn" onclick="setSprintMins(20)">20m</button>
-        <button class="pill-btn" onclick="shuffleSprint()">🔀 Shuffle</button>
-        <button class="pill-btn" style="background:#1e426b;color:#fff;" onclick="toggleTimerBox()">⏱️ Timer</button>
+        <button type="button" class="pill-btn" onclick="setSprintMins(5)">5m</button>
+        <button type="button" class="pill-btn" onclick="setSprintMins(10)">10m</button>
+        <button type="button" class="pill-btn active" onclick="setSprintMins(15)">15m</button>
+        <button type="button" class="pill-btn" onclick="setSprintMins(20)">20m</button>
+        <button type="button" class="pill-btn" onclick="shuffleSprint()">🔀 Shuffle</button>
+        <button type="button" class="pill-btn" style="background:#1e426b;color:#fff;" onclick="toggleTimerBox()">⏱️ Timer</button>
       </div>
     </div>
     <div class="timer-box" id="timerBox">
       <div class="timer-clock" id="timerDisplay">15:00</div>
       <div style="display:flex;gap:6px;">
-        <button class="btn-primary" id="timerStartBtn" onclick="startStopTimer()">Start</button>
-        <button class="pill-btn" onclick="resetTimer()">Reset</button>
+        <button type="button" class="btn-primary" id="timerStartBtn" onclick="startStopTimer()">Start</button>
+        <button type="button" class="pill-btn" onclick="resetTimer()">Reset</button>
       </div>
     </div>
     <div class="sprint-list" id="sprintList"></div>
   </div>
 
+  <!-- Zones Filter -->
   <div class="filter-section">
     <div class="filter-label"><span>Zones (Room Bundles) & Rooms</span></div>
     <div class="chip-row" id="locationFilterRow"></div>
   </div>
 
+  <!-- Household Members & Time Filter -->
   <div class="filter-section">
     <div class="filter-label">
       <span>Household & Time Available</span>
-      <button class="pill-btn" style="padding:3px 10px;font-size:0.76rem;" onclick="openShareModal()">💬 Text List</button>
+      <button type="button" class="pill-btn" style="padding:3px 10px;font-size:0.76rem;" onclick="openShareModal()">💬 Text List</button>
     </div>
     <div class="chip-row" id="personTimeFilterRow"></div>
   </div>
 
+  <!-- Active Habits List -->
   <div class="task-grid" id="taskGrid"></div>
 </div>
 
-<button class="fab" onclick="openTaskModal()">+ Add Habit</button>
+<button type="button" class="fab" onclick="openTaskModal()">+ Add Habit</button>
 
+<!-- Add / Edit Habit Modal -->
 <div class="modal-backdrop" id="taskModal">
   <div class="modal">
     <div class="modal-header">
       <h2 id="taskModalTitle">New Cleaning Habit</h2>
-      <button class="close-x" onclick="closeModal('taskModal')">&times;</button>
+      <button type="button" class="close-x" onclick="closeModal('taskModal')">&times;</button>
     </div>
     <input type="hidden" id="editTaskId">
     <div class="form-group">
@@ -249,27 +268,32 @@
       <select id="taskPersonSelect"></select>
     </div>
     <div style="display:flex;justify-content:space-between;gap:8px;margin-top:16px;">
-      <button class="btn-danger" id="deleteTaskBtn" style="display:none;" onclick="deleteCurrentTask()">Delete</button>
-      <button class="btn-primary" style="margin-left:auto;" onclick="saveTask()">Save Habit</button>
+      <button type="button" class="btn-danger" id="deleteTaskBtn" style="display:none;" onclick="deleteCurrentTask()">Delete</button>
+      <button type="button" class="btn-primary" style="margin-left:auto;" onclick="saveTask()">Save Habit</button>
     </div>
   </div>
 </div>
 
+<!-- Settings: Rooms, Zones, Members, Backup -->
 <div class="modal-backdrop" id="settingsModal">
   <div class="modal">
     <div class="modal-header">
       <h2>Manage Rooms, Zones & Household</h2>
-      <button class="close-x" onclick="closeModal('settingsModal')">&times;</button>
+      <button type="button" class="close-x" onclick="closeModal('settingsModal')">&times;</button>
     </div>
+
+    <!-- Rooms -->
     <div class="settings-box">
       <h3>🚪 Rooms</h3>
       <div class="inline-row">
         <input type="text" id="newRoomIcon" value="🏠" style="width:54px;text-align:center;">
         <input type="text" id="newRoomName" placeholder="Room name (e.g., Laundry Room)">
-        <button class="btn-primary" onclick="addRoomFromSettings()">Add</button>
+        <button type="button" class="btn-primary" onclick="addRoomFromSettings()">Add</button>
       </div>
       <div class="tag-list" id="roomsTagList"></div>
     </div>
+
+    <!-- Zones -->
     <div class="settings-box">
       <h3>🗺️ Zones (Bundle Existing Rooms)</h3>
       <div class="inline-row">
@@ -277,35 +301,40 @@
         <input type="text" id="newZoneName" placeholder="Zone name (e.g., Wet Areas, Upstairs)">
       </div>
       <div class="checkbox-grid" id="zoneRoomCheckboxes"></div>
-      <button class="btn-primary" style="width:100%;" onclick="addZoneFromSettings()">Create Zone Bundle</button>
+      <button type="button" class="btn-primary" style="width:100%;" onclick="addZoneFromSettings()">Create Zone Bundle</button>
       <div class="tag-list" id="zonesTagList"></div>
     </div>
+
+    <!-- Household Members -->
     <div class="settings-box">
       <h3>👥 Household Members</h3>
       <div class="inline-row">
         <input type="text" id="newMemberIcon" value="🧑" style="width:54px;text-align:center;">
         <input type="text" id="newMemberName" placeholder="Name (e.g., Alex)">
-        <button class="btn-primary" onclick="addMemberFromSettings()">Add</button>
+        <button type="button" class="btn-primary" onclick="addMemberFromSettings()">Add</button>
       </div>
       <div class="tag-list" id="membersTagList"></div>
     </div>
+
+    <!-- Backup & Reset -->
     <div class="settings-box">
       <h3>💾 Data Backup & Defaults</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="pill-btn" onclick="exportJSON()">Export JSON</button>
-        <button class="pill-btn" onclick="document.getElementById('importFile').click()">Import JSON</button>
+        <button type="button" class="pill-btn" onclick="exportJSON()">Export JSON</button>
+        <button type="button" class="pill-btn" onclick="document.getElementById('importFile').click()">Import JSON</button>
         <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importJSON(event)">
-        <button class="btn-danger" style="padding:5px 11px;font-size:0.8rem;" onclick="resetDefaults()">Reset Demo Data</button>
+        <button type="button" class="btn-danger" style="padding:5px 11px;font-size:0.8rem;" onclick="resetDefaults()">Reset Demo Data</button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Share via Text Modal -->
 <div class="modal-backdrop" id="shareModal">
   <div class="modal">
     <div class="modal-header">
       <h2>💬 Share Checklist via Text</h2>
-      <button class="close-x" onclick="closeModal('shareModal')">&times;</button>
+      <button type="button" class="close-x" onclick="closeModal('shareModal')">&times;</button>
     </div>
     <div class="form-group">
       <label>Select Household Member</label>
@@ -316,25 +345,27 @@
       <textarea id="shareTextArea" rows="7"></textarea>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="pill-btn" onclick="copyShareText()">📋 Copy Text</button>
+      <button type="button" class="pill-btn" onclick="copyShareText()">📋 Copy Text</button>
       <a id="smsLaunchLink" href="sms:" class="btn-primary" style="text-decoration:none;">📱 Open Messages</a>
     </div>
   </div>
 </div>
 
+<!-- Stats Modal -->
 <div class="modal-backdrop" id="statsModal">
   <div class="modal">
     <div class="modal-header">
       <h2>📊 Room Freshness & Momentum</h2>
-      <button class="close-x" onclick="closeModal('statsModal')">&times;</button>
+      <button type="button" class="close-x" onclick="closeModal('statsModal')">&times;</button>
     </div>
     <div id="statsContent"></div>
   </div>
 </div>
 
+<!-- Undo Toast -->
 <div class="toast" id="toast">
   <span id="toastMsg">Completed!</span>
-  <button onclick="undoLastAction()">Undo</button>
+  <button type="button" onclick="undoLastAction()">Undo</button>
 </div>
 
 <script>
@@ -415,9 +446,418 @@ function renderAll() {
 
 function renderFilters() {
   const locRow = document.getElementById('locationFilterRow');
-  let locHtml = `<button class="chip ${filterLocation === 'ALL' ? 'active' : ''}" onclick="setLocationFilter('ALL')">All Spaces</button>`;
+  let locHtml = `<button type="button" class="chip ${filterLocation === 'ALL' ? 'active' : ''}" onclick="setLocationFilter('ALL')">All Spaces</button>`;
   state.zones.forEach(z => {
-    locHtml += `<button class="chip zone-chip ${filterLocation === z.id ? 'active' : ''}" onclick="setLocationFilter('${z.id}')">${z.icon} ${z.name} (${z.roomIds.length})</button>`;
+    locHtml += `<button type="button" class="chip zone-chip ${filterLocation === z.id ? 'active' : ''}" onclick="setLocationFilter('${z.id}')">${z.icon} ${z.name} (${z.roomIds.length})</button>`;
   });
   state.rooms.forEach(r => {
-    locHtml += `<button class="chip ${filterLocation === r.id 
+    locHtml += `<button type="button" class="chip ${filterLocation === r.id ? 'active' : ''}" onclick="setLocationFilter('${r.id}')">${r.icon} ${r.name}</button>`;
+  });
+  locRow.innerHTML = locHtml;
+
+  const ptRow = document.getElementById('personTimeFilterRow');
+  let ptHtml = `<button type="button" class="chip ${filterPerson === 'ALL' ? 'active' : ''}" onclick="setPersonFilter('ALL')">Everyone</button>`;
+  state.members.forEach(m => {
+    ptHtml += `<button type="button" class="chip ${filterPerson === m.id ? 'active' : ''}" onclick="setPersonFilter('${m.id}')">${m.icon} ${m.name}</button>`;
+  });
+  ptHtml += `<button type="button" class="chip ${filterPerson === 'UNASSIGNED' ? 'active' : ''}" onclick="setPersonFilter('UNASSIGNED')">Unassigned</button>`;
+  ptHtml += `<button type="button" class="chip ${filterMaxMins === 5 ? 'active' : ''}" onclick="toggleTimeFilter(5)">⏱️ ≤ 5m</button>`;
+  ptHtml += `<button type="button" class="chip ${filterMaxMins === 15 ? 'active' : ''}" onclick="toggleTimeFilter(15)">⏱️ ≤ 15m</button>`;
+  ptRow.innerHTML = ptHtml;
+}
+
+function setLocationFilter(id) { filterLocation = id; renderAll(); }
+function setPersonFilter(id) { filterPerson = id; renderAll(); }
+function toggleTimeFilter(mins) { filterMaxMins = (filterMaxMins === mins) ? 0 : mins; renderAll(); }
+
+function getFilteredTasks() {
+  return state.tasks.filter(t => {
+    if (filterLocation !== 'ALL') {
+      if (filterLocation.startsWith('z_')) {
+        const zone = state.zones.find(z => z.id === filterLocation);
+        if (zone && !zone.roomIds.includes(t.roomId)) return false;
+      } else if (t.roomId !== filterLocation) {
+        return false;
+      }
+    }
+    if (filterPerson === 'UNASSIGNED' && t.personId) return false;
+    if (filterPerson !== 'ALL' && filterPerson !== 'UNASSIGNED' && t.personId !== filterPerson) return false;
+    if (filterMaxMins > 0 && t.mins > filterMaxMins) return false;
+    return true;
+  }).sort((a, b) => getUrgency(b) - getUrgency(a));
+}
+
+function renderSprint() {
+  document.getElementById('sprintMinsLabel').textContent = sprintMins;
+  const candidates = getFilteredTasks().filter(t => t.mins <= sprintMins);
+  if (sprintSeed > 0 && candidates.length > 1) {
+    const shift = sprintSeed % candidates.length;
+    candidates.push(...candidates.splice(0, shift));
+  }
+  let remaining = sprintMins;
+  const picked = [];
+  for (const t of candidates) {
+    if (t.mins <= remaining) {
+      picked.push(t);
+      remaining -= t.mins;
+    }
+  }
+  const list = document.getElementById('sprintList');
+  if (!picked.length) {
+    list.innerHTML = `<div style="font-size:0.83rem;color:#475569;">No tasks fit inside ${sprintMins}m for this filter — try increasing sprint minutes!</div>`;
+    return;
+  }
+  list.innerHTML = picked.map(t => {
+    const room = state.rooms.find(r => r.id === t.roomId) || { icon: '🏠', name: 'Home' };
+    return `<div class="sprint-item">
+      <span><strong>${t.name}</strong> <span style="color:#64748b;">(${room.icon} ${room.name} • ${t.mins}m)</span></span>
+      <button type="button" class="done-btn" style="padding:5px 10px;font-size:0.78rem;" onclick="completeTask('${t.id}')">✓ Done</button>
+    </div>`;
+  }).join('');
+}
+
+function setSprintMins(m) {
+  sprintMins = m;
+  timerSeconds = m * 60;
+  updateTimerDisplay();
+  document.querySelectorAll('.sprint-controls .pill-btn').forEach(btn => {
+    if (btn.textContent === m + 'm') btn.classList.add('active');
+    else if (btn.textContent.endsWith('m')) btn.classList.remove('active');
+  });
+  renderSprint();
+}
+function shuffleSprint() { sprintSeed++; renderSprint(); }
+
+function toggleTimerBox() { document.getElementById('timerBox').classList.toggle('open'); }
+function updateTimerDisplay() {
+  const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+  const s = String(timerSeconds % 60).padStart(2, '0');
+  document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+}
+function startStopTimer() {
+  const btn = document.getElementById('timerStartBtn');
+  if (timerInterval) {
+    clearInterval(timerInterval); timerInterval = null; btn.textContent = 'Start';
+  } else {
+    btn.textContent = 'Pause';
+    timerInterval = setInterval(() => {
+      if (timerSeconds > 0) { timerSeconds--; updateTimerDisplay(); }
+      else { clearInterval(timerInterval); timerInterval = null; btn.textContent = 'Start'; playChime(); }
+    }, 1000);
+  }
+}
+function resetTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  document.getElementById('timerStartBtn').textContent = 'Start';
+  timerSeconds = sprintMins * 60;
+  updateTimerDisplay();
+}
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    osc.type = 'sine'; osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.4);
+  } catch (e) {}
+}
+
+function renderTasks() {
+  const grid = document.getElementById('taskGrid');
+  const tasks = getFilteredTasks();
+  if (!tasks.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:34px;color:#64748b;background:#fff;border-radius:14px;">No habits match this filter. Tap <strong>+ Add Habit</strong> to create one!</div>`;
+    return;
+  }
+  grid.innerHTML = tasks.map(t => {
+    const urg = getUrgency(t);
+    const room = state.rooms.find(r => r.id === t.roomId) || { icon: '🏠', name: 'Whole Home' };
+    const person = state.members.find(m => m.id === t.personId);
+    let badgeClass = 'badge-fresh', barColor = '#059669';
+    if (urg >= 100) { badgeClass = 'badge-overdue'; barColor = '#dc2626'; }
+    else if (urg >= 75) { badgeClass = 'badge-due'; barColor = '#d97706'; }
+    const barWidth = Math.min(100, urg);
+
+    return `<div class="task-card">
+      <div class="task-main" onclick="openTaskModal('${t.id}')">
+        <div class="task-top">
+          <span class="task-name">${t.name}</span>
+          <span class="badge ${badgeClass}">${formatDueText(t)} (${urg}%)</span>
+          ${person ? `<span class="badge badge-person">${person.icon} ${person.name}</span>` : ''}
+        </div>
+        <div class="task-meta">
+          <span>${room.icon} ${room.name}</span>
+          <span>🔄 Every ${t.interval}d</span>
+          <span>⏱️ ${t.mins}m</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:${barWidth}%;background:${barColor};"></div></div>
+      </div>
+      <div class="task-actions">
+        ${urg >= 75 ? `<button type="button" class="snooze-btn" title="Nudge target +1 day" onclick="snoozeTask('${t.id}')">+1d</button>` : ''}
+        <button type="button" class="done-btn" onclick="completeTask('${t.id}')">Done</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function completeTask(id) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) return;
+  lastUndo = { id, prevLastDone: task.lastDone };
+  task.lastDone = Date.now();
+  state.history.unshift({ taskName: task.name, mins: task.mins, roomId: task.roomId, at: Date.now() });
+  saveState(); renderAll();
+  showToast(`Completed "${task.name}" — timer reset!`);
+}
+
+function snoozeTask(id) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) return;
+  lastUndo = { id, prevLastDone: task.lastDone };
+  task.lastDone += DAY_MS;
+  saveState(); renderAll();
+  showToast(`Nudged "${task.name}" forward 1 day.`);
+}
+
+function undoLastAction() {
+  if (!lastUndo) return;
+  const task = state.tasks.find(t => t.id === lastUndo.id);
+  if (task) task.lastDone = lastUndo.prevLastDone;
+  lastUndo = null;
+  document.getElementById('toast').classList.remove('show');
+  saveState(); renderAll();
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4500);
+}
+
+/* Task Modal */
+function openTaskModal(id = null) {
+  populateDropdowns();
+  document.getElementById('editTaskId').value = id || '';
+  if (id) {
+    const t = state.tasks.find(x => x.id === id);
+    document.getElementById('taskModalTitle').textContent = 'Edit Habit';
+    document.getElementById('taskNameInput').value = t.name;
+    document.getElementById('taskRoomSelect').value = t.roomId;
+    document.getElementById('taskIntervalInput').value = t.interval;
+    document.getElementById('taskMinsInput').value = t.mins;
+    document.getElementById('taskPersonSelect').value = t.personId || '';
+    document.getElementById('deleteTaskBtn').style.display = 'inline-block';
+  } else {
+    document.getElementById('taskModalTitle').textContent = 'New Cleaning Habit';
+    document.getElementById('taskNameInput').value = '';
+    document.getElementById('taskIntervalInput').value = 7;
+    document.getElementById('taskMinsInput').value = 10;
+    document.getElementById('taskPersonSelect').value = state.members[0]?.id || '';
+    document.getElementById('deleteTaskBtn').style.display = 'none';
+  }
+  document.getElementById('taskModal').classList.add('open');
+}
+
+function populateDropdowns() {
+  document.getElementById('taskRoomSelect').innerHTML = state.rooms.map(r => `<option value="${r.id}">${r.icon} ${r.name}</option>`).join('');
+  document.getElementById('taskPersonSelect').innerHTML = `<option value="">Unassigned</option>` + state.members.map(m => `<option value="${m.id}">${m.icon} ${m.name}</option>`).join('');
+}
+
+function quickAddRoom() {
+  const name = prompt('New room name (e.g., Home Office):');
+  if (!name || !name.trim()) return;
+  const id = 'r_' + Date.now();
+  state.rooms.push({ id, name: name.trim(), icon: '🚪' });
+  saveState(); populateDropdowns();
+  document.getElementById('taskRoomSelect').value = id;
+  renderFilters();
+}
+
+function quickAddMember() {
+  const name = prompt('Household member name:');
+  if (!name || !name.trim()) return;
+  const id = 'm_' + Date.now();
+  state.members.push({ id, name: name.trim(), icon: '🧑' });
+  saveState(); populateDropdowns();
+  document.getElementById('taskPersonSelect').value = id;
+  renderFilters();
+}
+
+function saveTask() {
+  const id = document.getElementById('editTaskId').value;
+  const name = document.getElementById('taskNameInput').value.trim();
+  if (!name) return alert('Please enter a habit name.');
+  const roomId = document.getElementById('taskRoomSelect').value;
+  const interval = Math.max(1, parseInt(document.getElementById('taskIntervalInput').value, 10) || 7);
+  const mins = Math.max(1, parseInt(document.getElementById('taskMinsInput').value, 10) || 10);
+  const personId = document.getElementById('taskPersonSelect').value;
+
+  if (id) {
+    const t = state.tasks.find(x => x.id === id);
+    Object.assign(t, { name, roomId, interval, mins, personId });
+  } else {
+    state.tasks.push({ id: 't_' + Date.now(), name, roomId, interval, mins, personId, lastDone: Date.now() - interval * DAY_MS });
+  }
+  saveState(); closeModal('taskModal'); renderAll();
+}
+
+function deleteCurrentTask() {
+  const id = document.getElementById('editTaskId').value;
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  saveState(); closeModal('taskModal'); renderAll();
+}
+
+/* Settings Modal */
+function openSettingsModal() {
+  renderSettingsLists();
+  document.getElementById('settingsModal').classList.add('open');
+}
+
+function renderSettingsLists() {
+  document.getElementById('roomsTagList').innerHTML = state.rooms.map(r =>
+    `<span class="tag-item">${r.icon} ${r.name} ${state.rooms.length > 1 ? `<button type="button" class="tag-del" onclick="deleteRoom('${r.id}')">&times;</button>` : ''}</span>`
+  ).join('');
+
+  document.getElementById('zoneRoomCheckboxes').innerHTML = state.rooms.map(r =>
+    `<label class="checkbox-item"><input type="checkbox" value="${r.id}"> ${r.icon} ${r.name}</label>`
+  ).join('');
+
+  document.getElementById('zonesTagList').innerHTML = state.zones.map(z =>
+    `<span class="tag-item">${z.icon} ${z.name} (${z.roomIds.length} rooms) <button type="button" class="tag-del" onclick="deleteZone('${z.id}')">&times;</button></span>`
+  ).join('');
+
+  document.getElementById('membersTagList').innerHTML = state.members.map(m =>
+    `<span class="tag-item">${m.icon} ${m.name} <button type="button" class="tag-del" onclick="deleteMember('${m.id}')">&times;</button></span>`
+  ).join('');
+}
+
+function addRoomFromSettings() {
+  const name = document.getElementById('newRoomName').value.trim();
+  const icon = document.getElementById('newRoomIcon').value.trim() || '🏠';
+  if (!name) return;
+  state.rooms.push({ id: 'r_' + Date.now(), name, icon });
+  document.getElementById('newRoomName').value = '';
+  saveState(); renderSettingsLists(); renderAll();
+}
+function deleteRoom(id) {
+  const fallback = state.rooms.find(r => r.id !== id).id;
+  state.tasks.forEach(t => { if (t.roomId === id) t.roomId = fallback; });
+  state.zones.forEach(z => { z.roomIds = z.roomIds.filter(rid => rid !== id); });
+  state.rooms = state.rooms.filter(r => r.id !== id);
+  saveState(); renderSettingsLists(); renderAll();
+}
+
+function addZoneFromSettings() {
+  const name = document.getElementById('newZoneName').value.trim();
+  const icon = document.getElementById('newZoneIcon').value.trim() || '🗺️';
+  const checked = Array.from(document.querySelectorAll('#zoneRoomCheckboxes input:checked')).map(cb => cb.value);
+  if (!name || checked.length < 1) return alert('Enter a zone name and select at least one room.');
+  state.zones.push({ id: 'z_' + Date.now(), name, icon, roomIds: checked });
+  document.getElementById('newZoneName').value = '';
+  saveState(); renderSettingsLists(); renderAll();
+}
+function deleteZone(id) {
+  state.zones = state.zones.filter(z => z.id !== id);
+  if (filterLocation === id) filterLocation = 'ALL';
+  saveState(); renderSettingsLists(); renderAll();
+}
+
+function addMemberFromSettings() {
+  const name = document.getElementById('newMemberName').value.trim();
+  const icon = document.getElementById('newMemberIcon').value.trim() || '🧑';
+  if (!name) return;
+  state.members.push({ id: 'm_' + Date.now(), name, icon });
+  document.getElementById('newMemberName').value = '';
+  saveState(); renderSettingsLists(); renderAll();
+}
+function deleteMember(id) {
+  state.tasks.forEach(t => { if (t.personId === id) t.personId = ''; });
+  state.members = state.members.filter(m => m.id !== id);
+  if (filterPerson === id) filterPerson = 'ALL';
+  saveState(); renderSettingsLists(); renderAll();
+}
+
+/* Share Modal */
+function openShareModal() {
+  const sel = document.getElementById('shareMemberSelect');
+  sel.innerHTML = `<option value="ALL">Everyone (All Due Tasks)</option>` +
+    state.members.map(m => `<option value="${m.id}">${m.icon} ${m.name}</option>`).join('');
+  if (filterPerson !== 'ALL' && filterPerson !== 'UNASSIGNED') sel.value = filterPerson;
+  buildShareMessage();
+  document.getElementById('shareModal').classList.add('open');
+}
+
+function buildShareMessage() {
+  const memberId = document.getElementById('shareMemberSelect').value;
+  const member = state.members.find(m => m.id === memberId);
+  const label = member ? `${member.name}'s` : "Household";
+  const due = state.tasks
+    .filter(t => (memberId === 'ALL' || t.personId === memberId) && getUrgency(t) >= 75)
+    .sort((a, b) => getUrgency(b) - getUrgency(a));
+
+  let lines = [`💧 TidyFlow — ${label} Cleaning Checklist:`];
+  if (!due.length) {
+    lines.push('✨ All caught up right now!');
+  } else {
+    due.forEach(t => {
+      const room = state.rooms.find(r => r.id === t.roomId)?.name || 'Home';
+      lines.push(`• ${t.name} (${room}, ~${t.mins}m)`);
+    });
+  }
+  const text = lines.join('\n');
+  document.getElementById('shareTextArea').value = text;
+  document.getElementById('smsLaunchLink').href = `sms:?&body=${encodeURIComponent(text)}`;
+}
+
+function copyShareText() {
+  const ta = document.getElementById('shareTextArea');
+  ta.select(); navigator.clipboard.writeText(ta.value);
+  showToast('Checklist copied to clipboard!');
+}
+
+/* Stats Modal */
+function openStatsModal() {
+  const totalDone = state.history.length;
+  const mins7d = state.history.filter(h => Date.now() - h.at <= 7 * DAY_MS).reduce((acc, h) => acc + h.mins, 0);
+  let html = `<div style="display:flex;gap:10px;margin-bottom:14px;">
+    <div class="settings-box" style="flex:1;text-align:center;"><div style="font-size:1.4rem;font-weight:800;color:#1e426b;">${totalDone}</div><div style="font-size:0.78rem;color:#64748b;">Completed</div></div>
+    <div class="settings-box" style="flex:1;text-align:center;"><div style="font-size:1.4rem;font-weight:800;color:#1e426b;">${mins7d}m</div><div style="font-size:0.78rem;color:#64748b;">Last 7 Days</div></div>
+  </div><h3 style="font-size:0.9rem;margin-bottom:8px;color:#1e426b;">Room Freshness</h3>`;
+
+  state.rooms.forEach(r => {
+    const rTasks = state.tasks.filter(t => t.roomId === r.id);
+    const avgFresh = rTasks.length ? Math.max(0, Math.round(100 - (rTasks.reduce((s, t) => s + Math.min(100, getUrgency(t)), 0) / rTasks.length))) : 100;
+    html += `<div style="margin-bottom:8px;font-size:0.84rem;">
+      <div style="display:flex;justify-content:space-between;"><span>${r.icon} ${r.name}</span><strong>${avgFresh}% fresh</strong></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${avgFresh}%;background:#2b5b94;"></div></div>
+    </div>`;
+  });
+  document.getElementById('statsContent').innerHTML = html;
+  document.getElementById('statsModal').classList.add('open');
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'tidyflow-backup.json'; a.click();
+}
+function importJSON(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try { state = JSON.parse(ev.target.result); saveState(); renderAll(); closeModal('settingsModal'); showToast('Backup restored!'); }
+    catch (err) { alert('Invalid JSON file.'); }
+  };
+  reader.readAsText(file);
+}
+function resetDefaults() {
+  if (!confirm('Reset all tasks, rooms, zones, and members to demo defaults?')) return;
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  saveState(); renderAll(); closeModal('settingsModal');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+renderAll();
+</script>
+</body>
+</html>
