@@ -105,11 +105,11 @@
   .progress-track { width: 100%; height: 5px; background: #e2e8f0; border-radius: 999px; margin-top: 8px; overflow: hidden; }
   .progress-fill { height: 100%; border-radius: 999px; transition: width 0.25s; }
   .task-actions { display: flex; align-items: center; gap: 6px; }
-  .snooze-btn {
+  .snooze-btn, .dup-card-btn {
     background: var(--surface-soft); border: 1px solid #cbd5e1; color: var(--text-muted);
     border-radius: 10px; padding: 7px 9px; font-size: 0.78rem; font-weight: 700; cursor: pointer;
   }
-  .snooze-btn:hover { background: #e2e8f0; color: var(--text); }
+  .snooze-btn:hover, .dup-card-btn:hover { background: #e2e8f0; color: var(--text); }
   .done-btn {
     background: var(--primary); color: #fff; border: none; border-radius: 10px;
     padding: 9px 14px; font-size: 0.84rem; font-weight: 700; cursor: pointer; white-space: nowrap;
@@ -151,11 +151,15 @@
   }
   .btn-secondary {
     background: var(--primary-tint); color: var(--primary); border: 1px solid var(--border-strong);
-    padding: 8px 12px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.84rem;
+    padding: 10px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.88rem;
   }
+  .btn-secondary:hover { background: #dbeafe; }
   .btn-danger {
     background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca;
     padding: 10px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.88rem;
+  }
+  .modal-footer-actions {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 16px; flex-wrap: wrap;
   }
   .settings-box {
     background: var(--surface-soft); border: 1px solid #e2e8f0; border-radius: 12px;
@@ -188,6 +192,229 @@
   /* Toast */
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #0f172a; color: #fff; padding: 11px 18px; border-radius: 999px;
+    font-size: 0.86rem; display: none; align-items: center; gap: 12px; z-index: 60;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+  }
+  .toast.show { display: flex; }
+  .toast button { background: #38bdf8; color: #0f172a; border: none; padding: 4px 10px; border-radius: 999px; font-weight: 800; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="brand">
+      <h1>💧 TidyFlow</h1>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="icon-btn" onclick="openStatsModal()">📊 Stats</button>
+      <button type="button" class="icon-btn" onclick="openSettingsModal()">⚙️ Manage</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Focus Sprint Card -->
+  <div class="sprint-card">
+    <div class="sprint-head">
+      <div class="sprint-title">⚡ Just <span id="sprintMinsLabel">15</span> Minutes Sprint</div>
+      <div class="sprint-controls">
+        <button type="button" class="pill-btn" onclick="setSprintMins(5)">5m</button>
+        <button type="button" class="pill-btn" onclick="setSprintMins(10)">10m</button>
+        <button type="button" class="pill-btn active" onclick="setSprintMins(15)">15m</button>
+        <button type="button" class="pill-btn" onclick="setSprintMins(20)">20m</button>
+        <button type="button" class="pill-btn" onclick="shuffleSprint()">🔀 Shuffle</button>
+        <button type="button" class="pill-btn" style="background:#1e426b;color:#fff;" onclick="toggleTimerBox()">⏱️ Timer</button>
+      </div>
+    </div>
+    <div class="timer-box" id="timerBox">
+      <div class="timer-clock" id="timerDisplay">15:00</div>
+      <div style="display:flex;gap:6px;">
+        <button type="button" class="btn-primary" id="timerStartBtn" onclick="startStopTimer()">Start</button>
+        <button type="button" class="pill-btn" onclick="resetTimer()">Reset</button>
+      </div>
+    </div>
+    <div class="sprint-list" id="sprintList"></div>
+  </div>
+
+  <!-- Zones Filter -->
+  <div class="filter-section">
+    <div class="filter-label"><span>Zones (Room Bundles) & Rooms</span></div>
+    <div class="chip-row" id="locationFilterRow"></div>
+  </div>
+
+  <!-- Household Members & Time Filter -->
+  <div class="filter-section">
+    <div class="filter-label">
+      <span>Household & Time Available</span>
+      <button type="button" class="pill-btn" style="padding:3px 10px;font-size:0.76rem;" onclick="openShareModal()">💬 Text List</button>
+    </div>
+    <div class="chip-row" id="personTimeFilterRow"></div>
+  </div>
+
+  <!-- Active Habits List -->
+  <div class="task-grid" id="taskGrid"></div>
+</div>
+
+<button type="button" class="fab" onclick="openTaskModal()">+ Add Habit</button>
+
+<!-- Add / Edit Habit Modal -->
+<div class="modal-backdrop" id="taskModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="taskModalTitle">New Cleaning Habit</h2>
+      <button type="button" class="close-x" onclick="closeModal('taskModal')">&times;</button>
+    </div>
+    <input type="hidden" id="editTaskId">
+    <div class="form-group">
+      <label>Habit / Chore Name</label>
+      <input type="text" id="taskNameInput" placeholder="e.g., Wipe kitchen counters">
+    </div>
+    <div class="form-group">
+      <label>Room <span class="label-action" onclick="quickAddRoom()">+ New Room</span></label>
+      <select id="taskRoomSelect" onchange="renderTaskZoneMembership()"></select>
+    </div>
+
+    <!-- Zones for this Room + Inline "+ New Zone" Creator -->
+    <div class="form-group">
+      <label>
+        Zones Including This Room
+        <span class="label-action" onclick="toggleQuickZoneForm()">+ New Zone</span>
+      </label>
+      <div class="zone-pills-wrap" id="taskZonePills"></div>
+
+      <div class="inline-drawer" id="quickZoneDrawer">
+        <div style="font-size:0.8rem;font-weight:700;color:#0369a1;margin-bottom:6px;">Create a Zone Bundle</div>
+        <div class="inline-row">
+          <input type="text" id="quickZoneIcon" value="🗺️" style="width:52px;text-align:center;" aria-label="Zone icon">
+          <input type="text" id="quickZoneName" placeholder="Zone name (e.g., Upstairs, Wet Areas)">
+        </div>
+        <div style="font-size:0.75rem;color:#475569;margin-top:8px;">Select rooms to bundle in this zone:</div>
+        <div class="checkbox-grid" id="quickZoneRoomCheckboxes"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">
+          <button type="button" class="pill-btn" onclick="toggleQuickZoneForm(false)">Cancel</button>
+          <button type="button" class="btn-primary" style="padding:7px 13px;font-size:0.82rem;" onclick="saveQuickZone()">Add Zone</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="inline-row">
+      <div class="form-group" style="flex:1;">
+        <label>Repeat Every (Days)</label>
+        <input type="number" id="taskIntervalInput" min="1" max="365" value="7">
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Effort (Minutes)</label>
+        <input type="number" id="taskMinsInput" min="1" max="180" value="10">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Assigned To <span class="label-action" onclick="quickAddMember()">+ New Person</span></label>
+      <select id="taskPersonSelect"></select>
+    </div>
+    <div class="modal-footer-actions">
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn-danger" id="deleteTaskBtn" style="display:none;" onclick="deleteCurrentTask()">Delete</button>
+        <button type="button" class="btn-secondary" id="duplicateTaskBtn" style="display:none;" onclick="duplicateCurrentTask()">📋 Duplicate</button>
+      </div>
+      <button type="button" class="btn-primary" style="margin-left:auto;" onclick="saveTask()">Save Habit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings: Rooms, Zones, Members, Backup -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Manage Rooms, Zones & Household</h2>
+      <button type="button" class="close-x" onclick="closeModal('settingsModal')">&times;</button>
+    </div>
+
+    <!-- Rooms -->
+    <div class="settings-box">
+      <h3>🚪 Rooms</h3>
+      <div class="inline-row">
+        <input type="text" id="newRoomIcon" value="🏠" style="width:54px;text-align:center;">
+        <input type="text" id="newRoomName" placeholder="Room name (e.g., Laundry Room)">
+        <button type="button" class="btn-primary" onclick="addRoomFromSettings()">Add</button>
+      </div>
+      <div class="tag-list" id="roomsTagList"></div>
+    </div>
+
+    <!-- Zones -->
+    <div class="settings-box">
+      <h3>🗺️ Zones (Bundle Existing Rooms)</h3>
+      <div class="inline-row">
+        <input type="text" id="newZoneIcon" value="💧" style="width:54px;text-align:center;">
+        <input type="text" id="newZoneName" placeholder="Zone name (e.g., Wet Areas, Upstairs)">
+      </div>
+      <div class="checkbox-grid" id="zoneRoomCheckboxes"></div>
+      <button type="button" class="btn-primary" style="width:100%;" onclick="addZoneFromSettings()">Create Zone Bundle</button>
+      <div class="tag-list" id="zonesTagList"></div>
+    </div>
+
+    <!-- Household Members -->
+    <div class="settings-box">
+      <h3>👥 Household Members</h3>
+      <div class="inline-row">
+        <input type="text" id="newMemberIcon" value="🧑" style="width:54px;text-align:center;">
+        <input type="text" id="newMemberName" placeholder="Name (e.g., Alex)">
+        <button type="button" class="btn-primary" onclick="addMemberFromSettings()">Add</button>
+      </div>
+      <div class="tag-list" id="membersTagList"></div>
+    </div>
+
+    <!-- Backup & Reset -->
+    <div class="settings-box">
+      <h3>💾 Data Backup & Defaults</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="pill-btn" onclick="exportJSON()">Export JSON</button>
+        <button type="button" class="pill-btn" onclick="document.getElementById('importFile').click()">Import JSON</button>
+        <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importJSON(event)">
+        <button type="button" class="btn-danger" style="padding:5px 11px;font-size:0.8rem;" onclick="resetDefaults()">Reset Demo Data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Share via Text Modal -->
+<div class="modal-backdrop" id="shareModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>💬 Share Checklist via Text</h2>
+      <button type="button" class="close-x" onclick="closeModal('shareModal')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>Select Household Member</label>
+      <select id="shareMemberSelect" onchange="buildShareMessage()"></select>
+    </div>
+    <div class="form-group">
+      <label>Editable Message Preview</label>
+      <textarea id="shareTextArea" rows="7"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button type="button" class="pill-btn" onclick="copyShareText()">📋 Copy Text</button>
+      <a id="smsLaunchLink" href="sms:" class="btn-primary" style="text-decoration:none;">📱 Open Messages</a>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Modal -->
+<div class="modal-backdrop" id="statsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📊 Room Freshness & Momentum</h2>
+      <button type="button" class="close-x" onclick="closeModal('statsModal')">&times;</button>
+    </div>
+    <div id="statsContent"></div>
+  </div>
+</div>
+
+<!-- Undo Toast -->
+<div class="toast" id="toast">
+  <span id="toastMsg">Completed!</span>
+  <button type="button" id="toastUndoBtn" onclick="undoateX(-50%);
     background: #0f172a; color: #fff; padding: 11px 18px; border-radius: 999px;
     font-size: 0.86rem; display: none; align-items: center; gap: 12px; z-index: 60;
     box-shadow: 0 10px 25px rgba(0,0,0,0.25);
