@@ -30,12 +30,11 @@
   body { background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 90px; }
   header {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 100%);
-    color: #fff; padding: 18px 20px 22px; position: sticky; top: 0; z-index: 30;
+    color: #fff; padding: 18px 20px; position: sticky; top: 0; z-index: 30;
     box-shadow: 0 4px 16px rgba(15, 23, 42, 0.14);
   }
   .header-top { max-width: 840px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .brand h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
-  .brand p { font-size: 0.8rem; color: #dbeafe; margin-top: 2px; }
   .header-actions { display: flex; gap: 8px; }
   .icon-btn {
     background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.22);
@@ -140,6 +139,8 @@
   .close-x { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted); }
   .form-group { margin-bottom: 12px; }
   .form-group label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; color: var(--text-muted); }
+  .label-action { float: right; color: var(--primary-mid); cursor: pointer; font-weight: 700; }
+  .label-action:hover { text-decoration: underline; }
   input[type="text"], input[type="number"], select, textarea {
     width: 100%; padding: 9px 11px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 0.92rem;
   }
@@ -147,6 +148,10 @@
   .btn-primary {
     background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 10px;
     font-weight: 700; cursor: pointer; font-size: 0.9rem;
+  }
+  .btn-secondary {
+    background: var(--primary-tint); color: var(--primary); border: 1px solid var(--border-strong);
+    padding: 8px 12px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.84rem;
   }
   .btn-danger {
     background: var(--danger-bg); color: var(--danger); border: 1px solid #fecaca;
@@ -157,6 +162,20 @@
     padding: 12px; margin-bottom: 14px;
   }
   .settings-box h3 { font-size: 0.92rem; color: var(--primary); margin-bottom: 8px; }
+  .inline-drawer {
+    display: none; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px;
+    padding: 12px; margin-top: 8px;
+  }
+  .inline-drawer.open { display: block; }
+  .zone-pills-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .zone-toggle-pill {
+    border: 1px solid #7dd3fc; background: #f0f9ff; color: #0369a1;
+    padding: 5px 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 700;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .zone-toggle-pill.selected {
+    background: #0284c7; color: #fff; border-color: #0284c7;
+  }
   .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .tag-item {
     background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 9px;
@@ -164,7 +183,7 @@
   }
   .tag-del { color: var(--danger); cursor: pointer; font-weight: 800; border: none; background: none; }
   .checkbox-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 8px 0; }
-  .checkbox-item { font-size: 0.82rem; display: flex; align-items: center; gap: 6px; background: #fff; padding: 6px 8px; border-radius: 8px; border: 1px solid #e2e8f0; }
+  .checkbox-item { font-size: 0.82rem; display: flex; align-items: center; gap: 6px; background: #fff; padding: 6px 8px; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; }
 
   /* Toast */
   .toast {
@@ -183,7 +202,6 @@
   <div class="header-top">
     <div class="brand">
       <h1>💧 TidyFlow</h1>
-      <p>Guilt-free rolling intervals • No weekend marathons</p>
     </div>
     <div class="header-actions">
       <button type="button" class="icon-btn" onclick="openStatsModal()">📊 Stats</button>
@@ -250,9 +268,33 @@
       <input type="text" id="taskNameInput" placeholder="e.g., Wipe kitchen counters">
     </div>
     <div class="form-group">
-      <label>Room <span style="float:right;color:#2b5b94;cursor:pointer;" onclick="quickAddRoom()">+ New Room</span></label>
-      <select id="taskRoomSelect"></select>
+      <label>Room <span class="label-action" onclick="quickAddRoom()">+ New Room</span></label>
+      <select id="taskRoomSelect" onchange="renderTaskZoneMembership()"></select>
     </div>
+
+    <!-- Zones for this Room + Inline "+ New Zone" Creator -->
+    <div class="form-group">
+      <label>
+        Zones Including This Room
+        <span class="label-action" onclick="toggleQuickZoneForm()">+ New Zone</span>
+      </label>
+      <div class="zone-pills-wrap" id="taskZonePills"></div>
+
+      <div class="inline-drawer" id="quickZoneDrawer">
+        <div style="font-size:0.8rem;font-weight:700;color:#0369a1;margin-bottom:6px;">Create a Zone Bundle</div>
+        <div class="inline-row">
+          <input type="text" id="quickZoneIcon" value="🗺️" style="width:52px;text-align:center;" aria-label="Zone icon">
+          <input type="text" id="quickZoneName" placeholder="Zone name (e.g., Upstairs, Wet Areas)">
+        </div>
+        <div style="font-size:0.75rem;color:#475569;margin-top:8px;">Select rooms to bundle in this zone:</div>
+        <div class="checkbox-grid" id="quickZoneRoomCheckboxes"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">
+          <button type="button" class="pill-btn" onclick="toggleQuickZoneForm(false)">Cancel</button>
+          <button type="button" class="btn-primary" style="padding:7px 13px;font-size:0.82rem;" onclick="saveQuickZone()">Add Zone</button>
+        </div>
+      </div>
+    </div>
+
     <div class="inline-row">
       <div class="form-group" style="flex:1;">
         <label>Repeat Every (Days)</label>
@@ -264,7 +306,7 @@
       </div>
     </div>
     <div class="form-group">
-      <label>Assigned To <span style="float:right;color:#2b5b94;cursor:pointer;" onclick="quickAddMember()">+ New Person</span></label>
+      <label>Assigned To <span class="label-action" onclick="quickAddMember()">+ New Person</span></label>
       <select id="taskPersonSelect"></select>
     </div>
     <div style="display:flex;justify-content:space-between;gap:8px;margin-top:16px;">
@@ -637,6 +679,7 @@ function showToast(msg) {
 /* Task Modal */
 function openTaskModal(id = null) {
   populateDropdowns();
+  toggleQuickZoneForm(false);
   document.getElementById('editTaskId').value = id || '';
   if (id) {
     const t = state.tasks.find(x => x.id === id);
@@ -650,17 +693,83 @@ function openTaskModal(id = null) {
   } else {
     document.getElementById('taskModalTitle').textContent = 'New Cleaning Habit';
     document.getElementById('taskNameInput').value = '';
+    if (filterLocation.startsWith('r_')) {
+      document.getElementById('taskRoomSelect').value = filterLocation;
+    }
     document.getElementById('taskIntervalInput').value = 7;
     document.getElementById('taskMinsInput').value = 10;
     document.getElementById('taskPersonSelect').value = state.members[0]?.id || '';
     document.getElementById('deleteTaskBtn').style.display = 'none';
   }
+  renderTaskZoneMembership();
   document.getElementById('taskModal').classList.add('open');
 }
 
 function populateDropdowns() {
+  const currentRoom = document.getElementById('taskRoomSelect').value;
   document.getElementById('taskRoomSelect').innerHTML = state.rooms.map(r => `<option value="${r.id}">${r.icon} ${r.name}</option>`).join('');
+  if (currentRoom && state.rooms.some(r => r.id === currentRoom)) {
+    document.getElementById('taskRoomSelect').value = currentRoom;
+  }
   document.getElementById('taskPersonSelect').innerHTML = `<option value="">Unassigned</option>` + state.members.map(m => `<option value="${m.id}">${m.icon} ${m.name}</option>`).join('');
+}
+
+function renderTaskZoneMembership() {
+  const selectedRoomId = document.getElementById('taskRoomSelect').value;
+  const wrap = document.getElementById('taskZonePills');
+  if (!state.zones.length) {
+    wrap.innerHTML = `<span style="font-size:0.78rem;color:#64748b;">No zones created yet. Tap <strong>+ New Zone</strong> to bundle rooms.</span>`;
+    return;
+  }
+  wrap.innerHTML = state.zones.map(z => {
+    const included = z.roomIds.includes(selectedRoomId);
+    return `<button type="button" class="zone-toggle-pill ${included ? 'selected' : ''}" onclick="toggleRoomInZone('${z.id}', '${selectedRoomId}')">
+      ${included ? '✓' : '+'} ${z.icon} ${z.name}
+    </button>`;
+  }).join('');
+}
+
+function toggleRoomInZone(zoneId, roomId) {
+  const zone = state.zones.find(z => z.id === zoneId);
+  if (!zone || !roomId) return;
+  if (zone.roomIds.includes(roomId)) {
+    zone.roomIds = zone.roomIds.filter(id => id !== roomId);
+  } else {
+    zone.roomIds.push(roomId);
+  }
+  saveState();
+  renderTaskZoneMembership();
+  renderFilters();
+}
+
+function toggleQuickZoneForm(forceState = null) {
+  const drawer = document.getElementById('quickZoneDrawer');
+  const shouldOpen = forceState !== null ? forceState : !drawer.classList.contains('open');
+  if (shouldOpen) {
+    const selectedRoomId = document.getElementById('taskRoomSelect').value;
+    document.getElementById('quickZoneName').value = '';
+    document.getElementById('quickZoneIcon').value = '🗺️';
+    document.getElementById('quickZoneRoomCheckboxes').innerHTML = state.rooms.map(r =>
+      `<label class="checkbox-item"><input type="checkbox" value="${r.id}" ${r.id === selectedRoomId ? 'checked' : ''}> ${r.icon} ${r.name}</label>`
+    ).join('');
+    drawer.classList.add('open');
+  } else {
+    drawer.classList.remove('open');
+  }
+}
+
+function saveQuickZone() {
+  const name = document.getElementById('quickZoneName').value.trim();
+  const icon = document.getElementById('quickZoneIcon').value.trim() || '🗺️';
+  const checked = Array.from(document.querySelectorAll('#quickZoneRoomCheckboxes input:checked')).map(cb => cb.value);
+  if (!name) return alert('Please enter a zone name.');
+  if (!checked.length) return alert('Please select at least one room for this zone.');
+  state.zones.push({ id: 'z_' + Date.now(), name, icon, roomIds: checked });
+  saveState();
+  toggleQuickZoneForm(false);
+  renderTaskZoneMembership();
+  renderFilters();
+  showToast(`Created zone "${name}"!`);
 }
 
 function quickAddRoom() {
@@ -670,6 +779,10 @@ function quickAddRoom() {
   state.rooms.push({ id, name: name.trim(), icon: '🚪' });
   saveState(); populateDropdowns();
   document.getElementById('taskRoomSelect').value = id;
+  renderTaskZoneMembership();
+  if (document.getElementById('quickZoneDrawer').classList.contains('open')) {
+    toggleQuickZoneForm(true);
+  }
   renderFilters();
 }
 
