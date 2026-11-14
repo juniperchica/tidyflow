@@ -414,4 +414,642 @@
 <!-- Undo Toast -->
 <div class="toast" id="toast">
   <span id="toastMsg">Completed!</span>
-  <button type="button" id="toastUndoBtn" onclick="undo
+  <button type="button" id="toastUndoBtn" onclick="undoLastAction()">Undo</button>
+</div>
+
+<script>
+const DAY_MS = 86400000;
+const STORAGE_KEY = 'tidyflow_v4_state';
+const NEWLINE = String.fromCharCode(10);
+
+const DEFAULT_STATE = {
+  rooms: [
+    { id: 'r_kitchen', name: 'Kitchen', icon: '🍳' },
+    { id: 'r_bath', name: 'Bathroom', icon: '🚿' },
+    { id: 'r_living', name: 'Living Room', icon: '🛋️' },
+    { id: 'r_bed', name: 'Bedroom', icon: '🛏️' },
+    { id: 'r_whole', name: 'Whole Home', icon: '🏠' }
+  ],
+  zones: [
+    { id: 'z_wet', name: 'Wet Areas', icon: '💧', roomIds: ['r_kitchen', 'r_bath'] },
+    { id: 'z_main', name: 'Main Living', icon: '✨', roomIds: ['r_kitchen', 'r_living'] }
+  ],
+  members: [
+    { id: 'm_me', name: 'Me', icon: '🙋' },
+    { id: 'm_partner', name: 'Partner', icon: '🤝' }
+  ],
+  tasks: [
+    { id: 't1', name: 'Wipe kitchen counters & sink', roomId: 'r_kitchen', interval: 2, mins: 5, personId: 'm_me', lastDone: Date.now() - 2.3 * DAY_MS },
+    { id: 't2', name: 'Swish toilet & wipe bathroom sink', roomId: 'r_bath', interval: 5, mins: 7, personId: 'm_partner', lastDone: Date.now() - 5.2 * DAY_MS },
+    { id: 't3', name: '5-minute living room reset', roomId: 'r_living', interval: 2, mins: 5, personId: 'm_me', lastDone: Date.now() - 1.8 * DAY_MS },
+    { id: 't4', name: 'Vacuum high-traffic floors', roomId: 'r_whole', interval: 7, mins: 15, personId: 'm_partner', lastDone: Date.now() - 6.0 * DAY_MS },
+    { id: 't5', name: 'Wash bedsheets & pillowcases', roomId: 'r_bed', interval: 10, mins: 15, personId: 'm_me', lastDone: Date.now() - 7.0 * DAY_MS },
+    { id: 't6', name: 'Scrub shower & tub', roomId: 'r_bath', interval: 14, mins: 15, personId: 'm_partner', lastDone: Date.now() - 9.0 * DAY_MS }
+  ],
+  history: []
+};
+
+let state = loadState();
+let filterLocation = 'ALL';
+let filterPerson = 'ALL';
+let filterMaxMins = 0;
+let sprintMins = 15;
+let sprintSeed = 0;
+let lastUndo = null;
+let timerSeconds = 15 * 60;
+let timerInterval = null;
+
+function loadState() {
+  const fallback = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          rooms: Array.isArray(parsed.rooms) && parsed.rooms.length ? parsed.rooms : fallback.rooms,
+          zones: Array.isArray(parsed.zones) ? parsed.zones : fallback.zones,
+          members: Array.isArray(parsed.members) ? parsed.members : fallback.members,
+          tasks: Array.isArray(parsed.tasks) ? parsed.tasks : fallback.tasks,
+          history: Array.isArray(parsed.history) ? parsed.history : []
+        };
+      }
+    }
+  } catch (e) {}
+  return fallback;
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function getUrgency(task) {
+  const daysElapsed = Math.max(0, (Date.now() - task.lastDone) / DAY_MS);
+  return Math.round((daysElapsed / Math.max(1, task.interval)) * 100);
+}
+
+function formatDueText(task) {
+  const daysElapsed = (Date.now() - task.lastDone) / DAY_MS;
+  const diff = task.interval - daysElapsed;
+  if (diff <= -1) return `${Math.abs(Math.round(diff))}d past target`;
+  if (diff <= 0.25) return 'Ready today';
+  if (diff < 1.5) return 'Tomorrow';
+  return `In ${Math.round(diff)}d`;
+}
+
+function renderAll() {
+  renderFilters();
+  renderSprint();
+  renderTasks();
+}
+
+function renderFilters() {
+  const locRow = document.getElementById('locationFilterRow');
+  let locHtml = `<button type="button" class="chip ${filterLocation === 'ALL' ? 'active' : ''}" onclick="setLocationFilter('ALL')">All Spaces</button>`;
+  state.zones.forEach(z => {
+    locHtml += `<button type="button" class="chip zone-chip ${filterLocation === z.id ? 'active' : ''}" onclick="setLocationFilter('${z.id}')">${z.icon} ${z.name} (${z.roomIds.length})</button>`;
+  });
+  state.rooms.forEach(r => {
+    locHtml += `<button type="button" class="chip ${filterLocation === r.id ? 'active' : ''}" onclick="setLocationFilter('${r.id}')">${r.icon} ${r.name}</button>`;
+  });
+  locRow.innerHTML = locHtml;
+
+  const ptRow = document.getElementById('personTimeFilterRow');
+  let ptHtml = `<button type="button" class="chip ${filterPerson === 'ALL' ? 'active' : ''}" onclick="setPersonFilter('ALL')">Everyone</button>`;
+  state.members.forEach(m => {
+    ptHtml += `<button type="button" class="chip ${filterPerson === m.id ? 'active' : ''}" onclick="setPersonFilter('${m.id}')">${m.icon} ${m.name}</button>`;
+  });
+  ptHtml += `<button type="button" class="chip ${filterPerson === 'UNASSIGNED' ? 'active' : ''}" onclick="setPersonFilter('UNASSIGNED')">Unassigned</button>`;
+  ptHtml += `<button type="button" class="chip ${filterMaxMins === 5 ? 'active' : ''}" onclick="toggleTimeFilter(5)">⏱️ ≤ 5m</button>`;
+  ptHtml += `<button type="button" class="chip ${filterMaxMins === 15 ? 'active' : ''}" onclick="toggleTimeFilter(15)">⏱️ ≤ 15m</button>`;
+  ptRow.innerHTML = ptHtml;
+}
+
+function setLocationFilter(id) { filterLocation = id; renderAll(); }
+function setPersonFilter(id) { filterPerson = id; renderAll(); }
+function toggleTimeFilter(mins) { filterMaxMins = (filterMaxMins === mins) ? 0 : mins; renderAll(); }
+
+function getFilteredTasks() {
+  return state.tasks.filter(t => {
+    if (filterLocation !== 'ALL') {
+      if (filterLocation.startsWith('z_')) {
+        const zone = state.zones.find(z => z.id === filterLocation);
+        if (zone && !zone.roomIds.includes(t.roomId)) return false;
+      } else if (t.roomId !== filterLocation) {
+        return false;
+      }
+    }
+    if (filterPerson === 'UNASSIGNED' && t.personId) return false;
+    if (filterPerson !== 'ALL' && filterPerson !== 'UNASSIGNED' && t.personId !== filterPerson) return false;
+    if (filterMaxMins > 0 && t.mins > filterMaxMins) return false;
+    return true;
+  }).sort((a, b) => getUrgency(b) - getUrgency(a));
+}
+
+function renderSprint() {
+  document.getElementById('sprintMinsLabel').textContent = sprintMins;
+  const candidates = getFilteredTasks().filter(t => t.mins <= sprintMins);
+  if (sprintSeed > 0 && candidates.length > 1) {
+    const shift = sprintSeed % candidates.length;
+    candidates.push(...candidates.splice(0, shift));
+  }
+  let remaining = sprintMins;
+  const picked = [];
+  for (const t of candidates) {
+    if (t.mins <= remaining) {
+      picked.push(t);
+      remaining -= t.mins;
+    }
+  }
+  const list = document.getElementById('sprintList');
+  if (!picked.length) {
+    list.innerHTML = `<div style="font-size:0.83rem;color:#475569;">No tasks fit inside ${sprintMins}m for this filter — try increasing sprint minutes!</div>`;
+    return;
+  }
+  list.innerHTML = picked.map(t => {
+    const room = state.rooms.find(r => r.id === t.roomId) || { icon: '🏠', name: 'Home' };
+    return `<div class="sprint-item">
+      <span><strong>${t.name}</strong> <span style="color:#64748b;">(${room.icon} ${room.name} • ${t.mins}m)</span></span>
+      <button type="button" class="done-btn" style="padding:5px 10px;font-size:0.78rem;" onclick="completeTask('${t.id}')">✓ Done</button>
+    </div>`;
+  }).join('');
+}
+
+function setSprintMins(m) {
+  sprintMins = m;
+  timerSeconds = m * 60;
+  updateTimerDisplay();
+  document.querySelectorAll('.sprint-controls .pill-btn').forEach(btn => {
+    if (btn.textContent === m + 'm') btn.classList.add('active');
+    else if (btn.textContent.endsWith('m')) btn.classList.remove('active');
+  });
+  renderSprint();
+}
+function shuffleSprint() { sprintSeed++; renderSprint(); }
+
+function toggleTimerBox() { document.getElementById('timerBox').classList.toggle('open'); }
+function updateTimerDisplay() {
+  const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+  const s = String(timerSeconds % 60).padStart(2, '0');
+  document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+}
+function startStopTimer() {
+  const btn = document.getElementById('timerStartBtn');
+  if (timerInterval) {
+    clearInterval(timerInterval); timerInterval = null; btn.textContent = 'Start';
+  } else {
+    btn.textContent = 'Pause';
+    timerInterval = setInterval(() => {
+      if (timerSeconds > 0) { timerSeconds--; updateTimerDisplay(); }
+      else { clearInterval(timerInterval); timerInterval = null; btn.textContent = 'Start'; playChime(); }
+    }, 1000);
+  }
+}
+function resetTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  document.getElementById('timerStartBtn').textContent = 'Start';
+  timerSeconds = sprintMins * 60;
+  updateTimerDisplay();
+}
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    osc.type = 'sine'; osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.4);
+  } catch (e) {}
+}
+
+function renderTasks() {
+  const grid = document.getElementById('taskGrid');
+  const tasks = getFilteredTasks();
+  if (!tasks.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:34px;color:#64748b;background:#fff;border-radius:14px;">No habits match this filter. Tap <strong>+ Add Habit</strong> to create one!</div>`;
+    return;
+  }
+  grid.innerHTML = tasks.map(t => {
+    const urg = getUrgency(t);
+    const room = state.rooms.find(r => r.id === t.roomId) || { icon: '🏠', name: 'Whole Home' };
+    const person = state.members.find(m => m.id === t.personId);
+    let badgeClass = 'badge-fresh', barColor = '#059669';
+    if (urg >= 100) { badgeClass = 'badge-overdue'; barColor = '#dc2626'; }
+    else if (urg >= 75) { badgeClass = 'badge-due'; barColor = '#d97706'; }
+    const barWidth = Math.min(100, urg);
+
+    return `<div class="task-card">
+      <div class="task-main" onclick="openTaskModal('${t.id}')">
+        <div class="task-top">
+          <span class="task-name">${t.name}</span>
+          <span class="badge ${badgeClass}">${formatDueText(t)} (${urg}%)</span>
+          ${person ? `<span class="badge badge-person">${person.icon} ${person.name}</span>` : ''}
+        </div>
+        <div class="task-meta">
+          <span>${room.icon} ${room.name}</span>
+          <span>🔄 Every ${t.interval}d</span>
+          <span>⏱️ ${t.mins}m</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:${barWidth}%;background:${barColor};"></div></div>
+      </div>
+      <div class="task-actions">
+        <button type="button" class="dup-card-btn" title="Duplicate habit" onclick="duplicateTaskById('${t.id}')">📋</button>
+        ${urg >= 75 ? `<button type="button" class="snooze-btn" title="Nudge target +1 day" onclick="snoozeTask('${t.id}')">+1d</button>` : ''}
+        <button type="button" class="done-btn" onclick="completeTask('${t.id}')">Done</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function completeTask(id) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) return;
+  lastUndo = { type: 'update', id, prevLastDone: task.lastDone };
+  task.lastDone = Date.now();
+  state.history.unshift({ taskName: task.name, mins: task.mins, roomId: task.roomId, at: Date.now() });
+  saveState(); renderAll();
+  showToast(`Completed "${task.name}" — timer reset!`, true);
+}
+
+function snoozeTask(id) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) return;
+  lastUndo = { type: 'update', id, prevLastDone: task.lastDone };
+  task.lastDone += DAY_MS;
+  saveState(); renderAll();
+  showToast(`Nudged "${task.name}" forward 1 day.`, true);
+}
+
+function duplicateTaskById(id) {
+  const orig = state.tasks.find(t => t.id === id);
+  if (!orig) return;
+  const copyId = 't_' + Date.now();
+  const copyTask = {
+    id: copyId,
+    name: orig.name + ' (Copy)',
+    roomId: orig.roomId,
+    interval: orig.interval,
+    mins: orig.mins,
+    personId: orig.personId || '',
+    lastDone: orig.lastDone
+  };
+  const idx = state.tasks.findIndex(t => t.id === id);
+  state.tasks.splice(idx + 1, 0, copyTask);
+  lastUndo = { type: 'create', id: copyId };
+  saveState(); renderAll();
+  showToast(`Duplicated "${orig.name}"!`, true);
+}
+
+function duplicateCurrentTask() {
+  const origId = document.getElementById('editTaskId').value;
+  const baseName = document.getElementById('taskNameInput').value.trim() || 'Habit';
+  const roomId = document.getElementById('taskRoomSelect').value;
+  const interval = Math.max(1, parseInt(document.getElementById('taskIntervalInput').value, 10) || 7);
+  const mins = Math.max(1, parseInt(document.getElementById('taskMinsInput').value, 10) || 10);
+  const personId = document.getElementById('taskPersonSelect').value;
+  const orig = state.tasks.find(x => x.id === origId);
+
+  const copyId = 't_' + Date.now();
+  const copyName = baseName.endsWith('(Copy)') ? baseName : `${baseName} (Copy)`;
+  const copyTask = {
+    id: copyId,
+    name: copyName,
+    roomId,
+    interval,
+    mins,
+    personId,
+    lastDone: orig ? orig.lastDone : (Date.now() - interval * DAY_MS)
+  };
+  state.tasks.push(copyTask);
+  lastUndo = { type: 'create', id: copyId };
+  saveState();
+  renderAll();
+  openTaskModal(copyId);
+  const nameInput = document.getElementById('taskNameInput');
+  nameInput.focus();
+  nameInput.select();
+  showToast(`Duplicated! Edit room, person, or name and click Save.`, true);
+}
+
+function undoLastAction() {
+  if (!lastUndo) return;
+  if (lastUndo.type === 'create') {
+    state.tasks = state.tasks.filter(t => t.id !== lastUndo.id);
+    if (document.getElementById('editTaskId').value === lastUndo.id) {
+      closeModal('taskModal');
+    }
+  } else {
+    const task = state.tasks.find(t => t.id === lastUndo.id);
+    if (task) task.lastDone = lastUndo.prevLastDone;
+  }
+  lastUndo = null;
+  document.getElementById('toast').classList.remove('show');
+  saveState(); renderAll();
+}
+
+function showToast(msg, canUndo = false) {
+  const el = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastUndoBtn').style.display = canUndo ? 'inline-block' : 'none';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4500);
+}
+
+/* Task Modal */
+function openTaskModal(id = null) {
+  populateDropdowns();
+  toggleQuickZoneForm(false);
+  document.getElementById('editTaskId').value = id || '';
+  if (id) {
+    const t = state.tasks.find(x => x.id === id);
+    document.getElementById('taskModalTitle').textContent = 'Edit Habit';
+    document.getElementById('taskNameInput').value = t.name;
+    document.getElementById('taskRoomSelect').value = t.roomId;
+    document.getElementById('taskIntervalInput').value = t.interval;
+    document.getElementById('taskMinsInput').value = t.mins;
+    document.getElementById('taskPersonSelect').value = t.personId || '';
+    document.getElementById('deleteTaskBtn').style.display = 'inline-block';
+    document.getElementById('duplicateTaskBtn').style.display = 'inline-block';
+  } else {
+    document.getElementById('taskModalTitle').textContent = 'New Cleaning Habit';
+    document.getElementById('taskNameInput').value = '';
+    if (filterLocation.startsWith('r_')) {
+      document.getElementById('taskRoomSelect').value = filterLocation;
+    }
+    document.getElementById('taskIntervalInput').value = 7;
+    document.getElementById('taskMinsInput').value = 10;
+    document.getElementById('taskPersonSelect').value = state.members[0]?.id || '';
+    document.getElementById('deleteTaskBtn').style.display = 'none';
+    document.getElementById('duplicateTaskBtn').style.display = 'none';
+  }
+  renderTaskZoneMembership();
+  document.getElementById('taskModal').classList.add('open');
+}
+
+function populateDropdowns() {
+  const currentRoom = document.getElementById('taskRoomSelect').value;
+  document.getElementById('taskRoomSelect').innerHTML = state.rooms.map(r => `<option value="${r.id}">${r.icon} ${r.name}</option>`).join('');
+  if (currentRoom && state.rooms.some(r => r.id === currentRoom)) {
+    document.getElementById('taskRoomSelect').value = currentRoom;
+  }
+  document.getElementById('taskPersonSelect').innerHTML = `<option value="">Unassigned</option>` + state.members.map(m => `<option value="${m.id}">${m.icon} ${m.name}</option>`).join('');
+}
+
+function renderTaskZoneMembership() {
+  const selectedRoomId = document.getElementById('taskRoomSelect').value;
+  const wrap = document.getElementById('taskZonePills');
+  if (!state.zones.length) {
+    wrap.innerHTML = `<span style="font-size:0.78rem;color:#64748b;">No zones created yet. Tap <strong>+ New Zone</strong> to bundle rooms.</span>`;
+    return;
+  }
+  wrap.innerHTML = state.zones.map(z => {
+    const included = z.roomIds.includes(selectedRoomId);
+    return `<button type="button" class="zone-toggle-pill ${included ? 'selected' : ''}" onclick="toggleRoomInZone('${z.id}', '${selectedRoomId}')">
+      ${included ? '✓' : '+'} ${z.icon} ${z.name}
+    </button>`;
+  }).join('');
+}
+
+function toggleRoomInZone(zoneId, roomId) {
+  const zone = state.zones.find(z => z.id === zoneId);
+  if (!zone || !roomId) return;
+  if (zone.roomIds.includes(roomId)) {
+    zone.roomIds = zone.roomIds.filter(id => id !== roomId);
+  } else {
+    zone.roomIds.push(roomId);
+  }
+  saveState();
+  renderTaskZoneMembership();
+  renderFilters();
+}
+
+function toggleQuickZoneForm(forceState = null) {
+  const drawer = document.getElementById('quickZoneDrawer');
+  const shouldOpen = forceState !== null ? forceState : !drawer.classList.contains('open');
+  if (shouldOpen) {
+    const selectedRoomId = document.getElementById('taskRoomSelect').value;
+    document.getElementById('quickZoneName').value = '';
+    document.getElementById('quickZoneIcon').value = '🗺️';
+    document.getElementById('quickZoneRoomCheckboxes').innerHTML = state.rooms.map(r =>
+      `<label class="checkbox-item"><input type="checkbox" value="${r.id}" ${r.id === selectedRoomId ? 'checked' : ''}> ${r.icon} ${r.name}</label>`
+    ).join('');
+    drawer.classList.add('open');
+  } else {
+    drawer.classList.remove('open');
+  }
+}
+
+function saveQuickZone() {
+  const name = document.getElementById('quickZoneName').value.trim();
+  const icon = document.getElementById('quickZoneIcon').value.trim() || '🗺️';
+  const checked = Array.from(document.querySelectorAll('#quickZoneRoomCheckboxes input:checked')).map(cb => cb.value);
+  if (!name) return alert('Please enter a zone name.');
+  if (!checked.length) return alert('Please select at least one room for this zone.');
+  state.zones.push({ id: 'z_' + Date.now(), name, icon, roomIds: checked });
+  saveState();
+  toggleQuickZoneForm(false);
+  renderTaskZoneMembership();
+  renderFilters();
+  showToast(`Created zone "${name}"!`, false);
+}
+
+function quickAddRoom() {
+  const name = prompt('New room name (e.g., Home Office):');
+  if (!name || !name.trim()) return;
+  const id = 'r_' + Date.now();
+  state.rooms.push({ id, name: name.trim(), icon: '🚪' });
+  saveState(); populateDropdowns();
+  document.getElementById('taskRoomSelect').value = id;
+  renderTaskZoneMembership();
+  if (document.getElementById('quickZoneDrawer').classList.contains('open')) {
+    toggleQuickZoneForm(true);
+  }
+  renderFilters();
+}
+
+function quickAddMember() {
+  const name = prompt('Household member name:');
+  if (!name || !name.trim()) return;
+  const id = 'm_' + Date.now();
+  state.members.push({ id, name: name.trim(), icon: '🧑' });
+  saveState(); populateDropdowns();
+  document.getElementById('taskPersonSelect').value = id;
+  renderFilters();
+}
+
+function saveTask() {
+  const id = document.getElementById('editTaskId').value;
+  const name = document.getElementById('taskNameInput').value.trim();
+  if (!name) return alert('Please enter a habit name.');
+  const roomId = document.getElementById('taskRoomSelect').value;
+  const interval = Math.max(1, parseInt(document.getElementById('taskIntervalInput').value, 10) || 7);
+  const mins = Math.max(1, parseInt(document.getElementById('taskMinsInput').value, 10) || 10);
+  const personId = document.getElementById('taskPersonSelect').value;
+
+  if (id) {
+    const t = state.tasks.find(x => x.id === id);
+    Object.assign(t, { name, roomId, interval, mins, personId });
+  } else {
+    state.tasks.push({ id: 't_' + Date.now(), name, roomId, interval, mins, personId, lastDone: Date.now() - interval * DAY_MS });
+  }
+  saveState(); closeModal('taskModal'); renderAll();
+}
+
+function deleteCurrentTask() {
+  const id = document.getElementById('editTaskId').value;
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  saveState(); closeModal('taskModal'); renderAll();
+}
+
+/* Settings Modal */
+function openSettingsModal() {
+  renderSettingsLists();
+  document.getElementById('settingsModal').classList.add('open');
+}
+
+function renderSettingsLists() {
+  document.getElementById('roomsTagList').innerHTML = state.rooms.map(r =>
+    `<span class="tag-item">${r.icon} ${r.name} ${state.rooms.length > 1 ? `<button type="button" class="tag-del" onclick="deleteRoom('${r.id}')">&times;</button>` : ''}</span>`
+  ).join('');
+
+  document.getElementById('zoneRoomCheckboxes').innerHTML = state.rooms.map(r =>
+    `<label class="checkbox-item"><input type="checkbox" value="${r.id}"> ${r.icon} ${r.name}</label>`
+  ).join('');
+
+  document.getElementById('zonesTagList').innerHTML = state.zones.map(z =>
+    `<span class="tag-item">${z.icon} ${z.name} (${z.roomIds.length} rooms) <button type="button" class="tag-del" onclick="deleteZone('${z.id}')">&times;</button></span>`
+  ).join('');
+
+  document.getElementById('membersTagList').innerHTML = state.members.map(m =>
+    `<span class="tag-item">${m.icon} ${m.name} <button type="button" class="tag-del" onclick="deleteMember('${m.id}')">&times;</button></span>`
+  ).join('');
+}
+
+function addRoomFromSettings() {
+  const name = document.getElementById('newRoomName').value.trim();
+  const icon = document.getElementById('newRoomIcon').value.trim() || '🏠';
+  if (!name) return;
+  state.rooms.push({ id: 'r_' + Date.now(), name, icon });
+  document.getElementById('newRoomName').value = '';
+  saveState(); renderSettingsLists(); renderAll();
+}
+function deleteRoom(id) {
+  const fallback = state.rooms.find(r => r.id !== id).id;
+  state.tasks.forEach(t => { if (t.roomId === id) t.roomId = fallback; });
+  state.zones.forEach(z => { z.roomIds = z.roomIds.filter(rid => rid !== id); });
+  state.rooms = state.rooms.filter(r => r.id !== id);
+  saveState(); renderSettingsLists(); renderAll();
+}
+
+function addZoneFromSettings() {
+  const name = document.getElementById('newZoneName').value.trim();
+  const icon = document.getElementById('newZoneIcon').value.trim() || '🗺️';
+  const checked = Array.from(document.querySelectorAll('#zoneRoomCheckboxes input:checked')).map(cb => cb.value);
+  if (!name || checked.length < 1) return alert('Enter a zone name and select at least one room.');
+  state.zones.push({ id: 'z_' + Date.now(), name, icon, roomIds: checked });
+  document.getElementById('newZoneName').value = '';
+  saveState(); renderSettingsLists(); renderAll();
+}
+function deleteZone(id) {
+  state.zones = state.zones.filter(z => z.id !== id);
+  if (filterLocation === id) filterLocation = 'ALL';
+  saveState(); renderSettingsLists(); renderAll();
+}
+
+function addMemberFromSettings() {
+  const name = document.getElementById('newMemberName').value.trim();
+  const icon = document.getElementById('newMemberIcon').value.trim() || '🧑';
+  if (!name) return;
+  state.members.push({ id: 'm_' + Date.now(), name, icon });
+  document.getElementById('newMemberName').value = '';
+  saveState(); renderSettingsLists(); renderAll();
+}
+function deleteMember(id) {
+  state.tasks.forEach(t => { if (t.personId === id) t.personId = ''; });
+  state.members = state.members.filter(m => m.id !== id);
+  if (filterPerson === id) filterPerson = 'ALL';
+  saveState(); renderSettingsLists(); renderAll();
+}
+
+/* Share Modal */
+function openShareModal() {
+  const sel = document.getElementById('shareMemberSelect');
+  sel.innerHTML = `<option value="ALL">Everyone (All Due Tasks)</option>` +
+    state.members.map(m => `<option value="${m.id}">${m.icon} ${m.name}</option>`).join('');
+  if (filterPerson !== 'ALL' && filterPerson !== 'UNASSIGNED') sel.value = filterPerson;
+  buildShareMessage();
+  document.getElementById('shareModal').classList.add('open');
+}
+
+function buildShareMessage() {
+  const memberId = document.getElementById('shareMemberSelect').value;
+  const member = state.members.find(m => m.id === memberId);
+  const label = member ? `${member.name}'s` : "Household";
+  const due = state.tasks
+    .filter(t => (memberId === 'ALL' || t.personId === memberId) && getUrgency(t) >= 75)
+    .sort((a, b) => getUrgency(b) - getUrgency(a));
+
+  let lines = [`💧 TidyFlow — ${label} Cleaning Checklist:`];
+  if (!due.length) {
+    lines.push('✨ All caught up right now!');
+  } else {
+    due.forEach(t => {
+      const room = state.rooms.find(r => r.id === t.roomId)?.name || 'Home';
+      lines.push(`• ${t.name} (${room}, ~${t.mins}m)`);
+    });
+  }
+  const text = lines.join(NEWLINE);
+  document.getElementById('shareTextArea').value = text;
+  document.getElementById('smsLaunchLink').href = `sms:?&body=${encodeURIComponent(text)}`;
+}
+
+function copyShareText() {
+  const ta = document.getElementById('shareTextArea');
+  ta.select(); navigator.clipboard.writeText(ta.value);
+  showToast('Checklist copied to clipboard!', false);
+}
+
+/* Stats Modal */
+function openStatsModal() {
+  const totalDone = state.history.length;
+  const mins7d = state.history.filter(h => Date.now() - h.at <= 7 * DAY_MS).reduce((acc, h) => acc + h.mins, 0);
+  let html = `<div style="display:flex;gap:10px;margin-bottom:14px;">
+    <div class="settings-box" style="flex:1;text-align:center;"><div style="font-size:1.4rem;font-weight:800;color:#1e426b;">${totalDone}</div><div style="font-size:0.78rem;color:#64748b;">Completed</div></div>
+    <div class="settings-box" style="flex:1;text-align:center;"><div style="font-size:1.4rem;font-weight:800;color:#1e426b;">${mins7d}m</div><div style="font-size:0.78rem;color:#64748b;">Last 7 Days</div></div>
+  </div><h3 style="font-size:0.9rem;margin-bottom:8px;color:#1e426b;">Room Freshness</h3>`;
+
+  state.rooms.forEach(r => {
+    const rTasks = state.tasks.filter(t => t.roomId === r.id);
+    const avgFresh = rTasks.length ? Math.max(0, Math.round(100 - (rTasks.reduce((s, t) => s + Math.min(100, getUrgency(t)), 0) / rTasks.length))) : 100;
+    html += `<div style="margin-bottom:8px;font-size:0.84rem;">
+      <div style="display:flex;justify-content:space-between;"><span>${r.icon} ${r.name}</span><strong>${avgFresh}% fresh</strong></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${avgFresh}%;background:#2b5b94;"></div></div>
+    </div>`;
+  });
+  document.getElementById('statsContent').innerHTML = html;
+  document.getElementById('statsModal').classList.add('open');
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'tidyflow-backup.json'; a.click();
+}
+function importJSON(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try { state = JSON.parse(ev.target.result); saveState(); renderAll(); closeModal('settingsModal'); showToast('Backup restored!', false); }
+    catch (err) { alert('Invalid JSON file.'); }
+  };
+  reader.readAsText(file);
+}
+function resetDefaults() {
+  if (!confirm('Reset all tasks, rooms, zones, and members to demo defaults?')) return;
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  saveState(); renderAll(); closeModal('settingsModal');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+renderAll();
+</script>
+</body>
+</html>
